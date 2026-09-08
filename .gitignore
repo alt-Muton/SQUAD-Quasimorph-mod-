@@ -1,0 +1,25 @@
+# Build outputs
+src/bin/
+src/obj/
+bin/
+obj/
+
+# Packaged / Steam upload artifacts (rebuild with `dotnet build -c Release`)
+publish/
+package/
+*.zip
+
+# IDE / OS
+.vs/
+.idea/
+*.user
+*.suo
+*.user
+Thumbs.db
+Desktop.ini
+
+# Local secrets / machine-specific
+*.pfx
+*.snk
+.env
+.env.*

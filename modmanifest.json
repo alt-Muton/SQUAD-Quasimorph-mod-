@@ -1,0 +1,11 @@
+{
+  "UniqueModName": "Squad_Leader",
+  "Assemblies": [
+    "Squad_Leader.dll"
+  ],
+  "Dependencies": [],
+  "SteamTags": [
+    "Gameplay Tweaks",
+    "1.0"
+  ]
+}

@@ -1,0 +1,109 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFramework>net48</TargetFramework>
+		<OutputType>Library</OutputType>
+		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+		<AssemblyName>Squad_Leader</AssemblyName>
+		<RootNamespace>Squad_Leader</RootNamespace>
+	</PropertyGroup>
+	<PropertyGroup>
+		<!-- Workshop item created via mod_createworkshopitem -->
+		<SteamId>3776322157</SteamId>
+	</PropertyGroup>
+	<PropertyGroup>
+		<GAME_NAME>Quasimorph</GAME_NAME>
+		<GAME_PATH Condition="!Exists('$(GAME_PATH)')">E:\SteamLibrary\steamapps\common\Quasimorph</GAME_PATH>
+		<ManagedPath>$(GAME_PATH)\Quasimorph_Data\Managed\</ManagedPath>
+		<WorkshopPath>$(GAME_PATH)\..\..\workshop\content\2059170\$(SteamId)\</WorkshopPath>
+		<PackageFolder>$(ProjectDir)../package/</PackageFolder>
+		<PublishFolder>$(ProjectDir)../publish/</PublishFolder>
+		<McmDllPath Condition="Exists('$(GAME_PATH)\..\..\workshop\content\2059170\3469678797\MCM.dll')">$(GAME_PATH)\..\..\workshop\content\2059170\3469678797\MCM.dll</McmDllPath>
+		<McmDllPath Condition="'$(McmDllPath)'=='' and Exists('$(ProjectDir)../../LLM_NPC_Chat/lib/MCM_release/MCM/MCM.dll')">$(ProjectDir)../../LLM_NPC_Chat/lib/MCM_release/MCM/MCM.dll</McmDllPath>
+		<McmDllPath Condition="'$(McmDllPath)'=='' and Exists('$(ProjectDir)../../LLM_NPC_Chat/lib/Mod-Configuration-Menu/src/bin/Release/net48/MCM.dll')">$(ProjectDir)../../LLM_NPC_Chat/lib/Mod-Configuration-Menu/src/bin/Release/net48/MCM.dll</McmDllPath>
+	</PropertyGroup>
+	<ItemGroup>
+		<Reference Include="Assembly-CSharp" publicize="true">
+			<HintPath>$(ManagedPath)Assembly-CSharp.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="UnityEngine">
+			<HintPath>$(ManagedPath)UnityEngine.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="UnityEngine.CoreModule">
+			<HintPath>$(ManagedPath)UnityEngine.CoreModule.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="UnityEngine.InputLegacyModule">
+			<HintPath>$(ManagedPath)UnityEngine.InputLegacyModule.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="UnityEngine.UI">
+			<HintPath>$(ManagedPath)UnityEngine.UI.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="UnityEngine.TextRenderingModule">
+			<HintPath>$(ManagedPath)UnityEngine.TextRenderingModule.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="UnityEngine.AudioModule">
+			<HintPath>$(ManagedPath)UnityEngine.AudioModule.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="Unity.TextMeshPro">
+			<HintPath>$(ManagedPath)Unity.TextMeshPro.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="MCM" Condition="Exists('$(McmDllPath)')">
+			<HintPath>$(McmDllPath)</HintPath>
+			<Private>False</Private>
+		</Reference>
+	</ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.2" ExcludeAssets="runtime" />
+		<PackageReference Include="Lib.Harmony" Version="2.3.3" ExcludeAssets="runtime" />
+		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" ExcludeAssets="runtime" />
+	</ItemGroup>
+
+	<!-- Copy manifest/thumbnail into TargetDir BEFORE workshop deploy (order matters). -->
+	<Target Name="ModBaseItems" AfterTargets="PostBuildEvent">
+		<Copy SourceFiles="../modmanifest.json" DestinationFolder="$(TargetDir)" />
+		<Copy SourceFiles="../media/thumbnail.png" DestinationFolder="$(TargetDir)" ContinueOnError="true" />
+		<MakeDir Directories="$(PublishFolder)" />
+		<ItemGroup>
+			<PublishSource Include="$(TargetDir)*.dll" />
+			<PublishSource Include="$(TargetDir)modmanifest.json" />
+			<PublishSource Include="$(TargetDir)thumbnail.png" />
+		</ItemGroup>
+		<Copy SourceFiles="@(PublishSource)" DestinationFolder="$(PublishFolder)" ContinueOnError="true" />
+	</Target>
+
+	<!-- Clean + deploy in one target after ModBaseItems so modmanifest.json is never missing. -->
+	<Target Name="SteamWorkshopDeploy" Condition="'$(SteamId)'!=''" AfterTargets="ModBaseItems">
+		<ItemGroup>
+			<FilesToDelete Include="$(WorkshopPath)*" />
+		</ItemGroup>
+		<Delete Files="@(FilesToDelete)" />
+		<ItemGroup>
+			<BuildSource Include="$(TargetDir)*.*" />
+		</ItemGroup>
+		<MakeDir Directories="$(WorkshopPath)" />
+		<Copy SourceFiles="@(BuildSource)" DestinationFolder="$(WorkshopPath)" />
+		<Copy SourceFiles="$(ProjectDir)../modmanifest.json" DestinationFolder="$(WorkshopPath)" />
+	</Target>
+
+	<Target Name="ReleasePdbDelete" Condition="'$(SteamId)'!='' and '$(Configuration)'=='Release'" AfterTargets="SteamWorkshopDeploy">
+		<Delete Files="$(WorkshopPath)$(AssemblyName).pdb" />
+		<Delete Files="$(TargetDir)$(AssemblyName).pdb" />
+	</Target>
+
+	<Target Name="PostBuildPackage" Condition="'$(SteamId)'!='' and '$(Configuration)'=='Release'" AfterTargets="ReleasePdbDelete">
+		<ItemGroup>
+			<WorkshopSourceFile Include="$(WorkshopPath)*.*" />
+		</ItemGroup>
+		<RemoveDir Directories="$(PackageFolder)" />
+		<MakeDir Directories="$(PackageFolder)$(AssemblyName)" />
+		<Copy SourceFiles="@(WorkshopSourceFile)" DestinationFolder="$(PackageFolder)$(AssemblyName)" />
+		<ZipDirectory SourceDirectory="$(PackageFolder)$(AssemblyName)" DestinationFile="$(PackageFolder)../$(AssemblyName).zip" Overwrite="true" />
+	</Target>
+</Project>
